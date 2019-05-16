@@ -25,8 +25,6 @@ nSubasta nNuevaSubasta(int n, int delay);
 int nOfrecer(nSubasta s, int oferta);
 int nRecaudacion(nSubasta s, int *punidades);
 
-
-
 /* ... agregue aca la implementacion del sistema de subastas ... */
 
 nSubasta nNuevaSubasta(int n,int delay){
@@ -35,29 +33,36 @@ nSubasta nNuevaSubasta(int n,int delay){
   ns->elementos=n;    //cantidad de elementos en la subasta
   ns->fila= MakePriQueue(2*n); //cola de prioradidad para la subasta
   ns->recaudacion = NULL; //empieza vacia, se llena con nRecaudacion
+  
   return ns;
-
 }
 
 int nOfrecer(nSubasta s, int oferta){
   START_CRITICAL();
+
+
   nTask this_task = current_task;
   this_task->status = OFERTA_ACTIVA;
   PriPut(s->fila,this_task,oferta);
+
+
   if(s->fila->size>s->elementos){
-    nTask aux=PriGet(s->fila);
-    aux->status=INACTIVA;
+    int diff= s->fila->size-s->elementos;
+    for(int i=0;i<diff;i++){
+      nTask t = s->fila->vec[i];
+      t->status=INACTIVA;
+    }
   }
+  current_task=s->recaudacion;
+  CancelTask(s->recaudacion);
+  ProgramTask(s->tiempo);
+  current_task=this_task;
 
 
   ResumeNextReadyTask();
-  printf("ME DEVOLVIERON \n");
-  if(this_task->status!=OFERTA_ACTIVA){
-    printf("AAAAAAAAAAAAAAAAa\n");
-    return FALSE;}
-  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEe\n");
+  if(this_task->status!=OFERTA_ACTIVA)
+    return FALSE;
   return TRUE;
-
 /*Como llamaron a oferta, debo resetear el timer de nRecaudacion*/
 
 
@@ -69,36 +74,34 @@ int nRecaudacion(nSubasta s, int *punidades){
   s->recaudacion->status=WAIT_TASK;
   ProgramTask(s->tiempo);//timer para terminar la subasta
   ResumeNextReadyTask(); //dejo la cpu para los demas procesos
-  printf("Estado: %i\n",this_task->status );
+
   int total=s->elementos; /*Cantidad maxima de ofertas validas de la PriQueue*/
   int largo= s->fila->size; /*Cantidad de elementos en la cola*/
   int recaudado=0;
-  for(int i=0;i<total;i++){
+
+  for(int i=0;i<largo;i++){
     nTask aux= PriGet(s->fila);
+      PushTask(ready_queue,aux);
     if(aux->status==OFERTA_ACTIVA){
       recaudado+=aux->oferta;
 
-      PushTask(ready_queue,aux);
-
     }
-    else{
-      aux->status=READY;
-
-      PushTask(ready_queue,aux);
-    }
-    
-    
-    
-
-
-
   }
+  PutTask(ready_queue,s->recaudacion);
+  ResumeNextReadyTask();
+  int dif= total-largo;
+  if(dif<0){
+    *punidades=0;  
+  }
+  else{
+    *punidades=dif;
+  }
+   /*devuelve la cantidadd de elementos restantes en la cola*/
+
+  int empty= EmptyPriQueue(s->fila);  
+  nFree(s);
 
 
-ResumeNextReadyTask();
-
-
-  *punidades=total-largo; /*devuelve la cantidadd de elementos restantes en la cola*/
   END_CRITICAL();
 
   return recaudado;
