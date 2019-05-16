@@ -74,11 +74,14 @@ int test2(int print_msg, int delay) {
   nTask ximena= nEmitTask(oferente, s, print_msg, "ximena", 4);
   nSleep(1000);
   nTask erika= nEmitTask(oferente, s, print_msg, "erika", 5);
+  printf("YA PASARON 4 WEAS\n");
   if (nWaitTask(maria))
     nFatalError("nMain", "maria debio perder con 3\n");
   nSleep(1000);
+  printf("YA PASARON 5 WEAS\n");
   nTask sonia= nEmitTask(oferente, s, print_msg, "sonia", 6);
   int u;
+  printf("YA PASARON 6 WEAS\n");
   int recaud= nRecaudacion(s, &u);
   if (recaud!=18)
     nFatalError("test1", "La recaudacion debio ser 18 y no %d\n", recaud);

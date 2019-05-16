@@ -40,11 +40,17 @@ nSubasta nNuevaSubasta(int n,int delay){
 int nOfrecer(nSubasta s, int oferta){
   START_CRITICAL();
 
-
   nTask this_task = current_task;
+  if(s->recaudacion!=NULL){
+    current_task=s->recaudacion;
+    CancelTask(current_task);
+    ProgramTask(s->tiempo);
+    current_task=this_task;
+}
+
   this_task->status = OFERTA_ACTIVA;
   PriPut(s->fila,this_task,oferta);
-
+  printf("METER A LA FILA\n");
 
   if(s->fila->size>s->elementos){
     int diff= s->fila->size-s->elementos;
@@ -53,13 +59,10 @@ int nOfrecer(nSubasta s, int oferta){
       t->status=INACTIVA;
     }
   }
-  current_task=s->recaudacion;
-  CancelTask(s->recaudacion);
-  ProgramTask(s->tiempo);
-  current_task=this_task;
 
 
   ResumeNextReadyTask();
+  printf("Decidir que devolver\n");
   if(this_task->status!=OFERTA_ACTIVA)
     return FALSE;
   return TRUE;
