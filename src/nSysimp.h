@@ -51,6 +51,7 @@ typedef struct Task /* Descriptor de una tarea */
 
 /*Estados para nSubasta*/
 #define OFERTA_ACTIVA 13
+#define INACTIVA 14
 
 
 
@@ -60,7 +61,7 @@ typedef struct Task /* Descriptor de una tarea */
 
 #define STATUS_LIST {"READY", "ZOMBIE", "WAIT_TASK", "WAIT_REPLY", \
                      "WAIT_SEND", "WAIT_SEND_TIMEOUT", "WAIT_READ", \
-                     "WAIT_WRITE", "WAIT_SEM", "WAIT_MON", "WAIT_COND" }
+                     "WAIT_WRITE", "WAIT_SEM", "WAIT_MON", "WAIT_COND","OFERTA_ACTIVA","INACTIVA" }
 
 /*
  * Prologo y Epilogo:

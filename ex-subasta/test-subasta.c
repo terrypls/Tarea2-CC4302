@@ -81,7 +81,7 @@ int test2(int print_msg, int delay) {
   int u;
   int recaud= nRecaudacion(s, &u);
   if (recaud!=18)
-    nFatalError("test1", "La recaudacion debio ser 7 y no %d\n", recaud);
+    nFatalError("test1", "La recaudacion debio ser 18 y no %d\n", recaud);
   if (u!=0)
     nFatalError("test1", "Quedaron %d unidades sin vender\n", u);
   if (print_msg)

@@ -33,28 +33,34 @@ nSubasta nNuevaSubasta(int n,int delay){
   nSubasta ns=nMalloc(sizeof(*ns)); //asigno memoria a subasta
   ns->tiempo=delay;   //tiempo de espera antes de cerrar subasta
   ns->elementos=n;    //cantidad de elementos en la subasta
-  ns->fila= MakePriQueue(n); //cola de prioradidad para la subasta
+  ns->fila= MakePriQueue(2*n); //cola de prioradidad para la subasta
   ns->recaudacion = NULL; //empieza vacia, se llena con nRecaudacion
   return ns;
-  printf("%i\n",n );
+
 }
 
 int nOfrecer(nSubasta s, int oferta){
   START_CRITICAL();
-
-
   nTask this_task = current_task;
   this_task->status = OFERTA_ACTIVA;
   PriPut(s->fila,this_task,oferta);
-    int holis= s->fila->size;
-  printf("\nTAMAÑO ACTUAL DE LA QUEUE %i\n",holis );
-  ResumeNextReadyTask();
+  if(s->fila->size>s->elementos){
+    nTask aux=PriGet(s->fila);
+    aux->status=INACTIVA;
+  }
 
-  
+
+  ResumeNextReadyTask();
+  printf("ME DEVOLVIERON \n");
+  if(this_task->status!=OFERTA_ACTIVA){
+    printf("AAAAAAAAAAAAAAAAa\n");
+    return FALSE;}
+  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEe\n");
+  return TRUE;
 
 /*Como llamaron a oferta, debo resetear el timer de nRecaudacion*/
 
-  END_CRITICAL();
+
 }
 int nRecaudacion(nSubasta s, int *punidades){
   START_CRITICAL();
@@ -63,24 +69,34 @@ int nRecaudacion(nSubasta s, int *punidades){
   s->recaudacion->status=WAIT_TASK;
   ProgramTask(s->tiempo);//timer para terminar la subasta
   ResumeNextReadyTask(); //dejo la cpu para los demas procesos
-
+  printf("Estado: %i\n",this_task->status );
   int total=s->elementos; /*Cantidad maxima de ofertas validas de la PriQueue*/
   int largo= s->fila->size; /*Cantidad de elementos en la cola*/
   int recaudado=0;
-nTask tarea1=PriGet(s->fila);
-nTask tarea2=PriGet(s->fila);
-nTask tarea3=PriGet(s->fila);
-nTask tarea4=PriGet(s->fila);
+  for(int i=0;i<total;i++){
+    nTask aux= PriGet(s->fila);
+    if(aux->status==OFERTA_ACTIVA){
+      recaudado+=aux->oferta;
 
-printf("Tarea 1%i\n",tarea1->oferta);
-nTask tarea1=PriGet(s->fila);
+      PushTask(ready_queue,aux);
+
+    }
+    else{
+      aux->status=READY;
+
+      PushTask(ready_queue,aux);
+    }
+    
+    
+    
 
 
-  /*for(int i=0;i<total;i++){
-      int aux = PriBest(s->fila);
-      recaudado+=aux;
-      printf("%i\n",aux );
-  }*/
+
+  }
+
+
+ResumeNextReadyTask();
+
 
   *punidades=total-largo; /*devuelve la cantidadd de elementos restantes en la cola*/
   END_CRITICAL();
@@ -100,7 +116,6 @@ nTask PriGet(PriQueue pq) {
   nTask t;
   int k;
   if (pq->size==0)
-    printf("Nulo\n");
     return NULL;
   t= pq->vec[0];
   pq->size--;
@@ -121,8 +136,6 @@ void PriPut(PriQueue pq, nTask t, int oferta) {
   }
   pq->vec[k+1]= t;
   pq->size++;
-
-
 }
 
 int PriBest(PriQueue pq) {
@@ -132,4 +145,3 @@ int PriBest(PriQueue pq) {
 int EmptyPriQueue(PriQueue pq) {
   return pq->size==0;
 }
-
