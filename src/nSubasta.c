@@ -39,37 +39,38 @@ nSubasta nNuevaSubasta(int n,int delay){
 
 int nOfrecer(nSubasta s, int oferta){
   START_CRITICAL();
-
+/*Como llego una nueva oferta, debo resetear el timer de nRecaudacion*/
   nTask this_task = current_task;
   if(s->recaudacion!=NULL){
     current_task=s->recaudacion;
     CancelTask(current_task);
     ProgramTask(s->tiempo);
     current_task=this_task;
-}
-
-  this_task->status = OFERTA_ACTIVA;
-  PriPut(s->fila,this_task,oferta);
-  printf("METER A LA FILA\n");
-
-  if(s->fila->size>s->elementos){
-    int diff= s->fila->size-s->elementos;
-    for(int i=0;i<diff;i++){
-      nTask t = s->fila->vec[i];
-      t->status=INACTIVA;
-    }
   }
+//Cambio estatus de la tarea y lo agrego a la cola de prioridad
+  this_task->status=WAIT_TASK;
+  PriPut(s->fila,this_task,oferta);
 
+  nTask minimo;
 
+    //si soy mejor que el ultimo, y la fila es mas grande que la oferta, saco el minimo y lo meto a la cola
+  if(PriBest(s->fila) <= oferta && s->fila->size > s->elementos){
+    minimo=PriGet(s->fila);
+    minimo->status=READY;
+    PutTask(ready_queue,minimo);
+  }
+//Cedo la CPU para el siguiente proceso en la cola
   ResumeNextReadyTask();
-  printf("Decidir que devolver\n");
-  if(this_task->status!=OFERTA_ACTIVA)
+//me acaba de llegar la cpu de nuevo
+//Tengo que comprobar que la fila sea distinto de 0 para matar, de lo contrarios 
+  if(s->fila->size!=0){
     return FALSE;
+  }
+  END_CRITICAL();
   return TRUE;
-/*Como llamaron a oferta, debo resetear el timer de nRecaudacion*/
-
 
 }
+
 int nRecaudacion(nSubasta s, int *punidades){
   START_CRITICAL();
   nTask this_task=current_task; //tarea actual
@@ -78,27 +79,27 @@ int nRecaudacion(nSubasta s, int *punidades){
   ProgramTask(s->tiempo);//timer para terminar la subasta
   ResumeNextReadyTask(); //dejo la cpu para los demas procesos
 
-  int total=s->elementos; /*Cantidad maxima de ofertas validas de la PriQueue*/
-  int largo= s->fila->size; /*Cantidad de elementos en la cola*/
+  int total=s->fila->size;  //Tamaño de la fila
+  int largo=s->elementos;   //Cantidad de elementos subastados
   int recaudado=0;
 
-  for(int i=0;i<largo;i++){
+  while(s->fila->size > 0){
     nTask aux= PriGet(s->fila);
-      PushTask(ready_queue,aux);
-    if(aux->status==OFERTA_ACTIVA){
-      recaudado+=aux->oferta;
-
-    }
+    recaudado+=aux->oferta;
+    aux->status=READY;
+    PutTask(ready_queue,aux);
   }
-  PutTask(ready_queue,s->recaudacion);
-  ResumeNextReadyTask();
-  int dif= total-largo;
+
+
+  int dif= largo-total;
   if(dif<0){
     *punidades=0;  
   }
   else{
     *punidades=dif;
   }
+  PutTask(ready_queue,this_task);
+  ResumeNextReadyTask();
    /*devuelve la cantidadd de elementos restantes en la cola*/
 
   int empty= EmptyPriQueue(s->fila);  
